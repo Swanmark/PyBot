@@ -94,13 +94,21 @@ irc.send('JOIN '+ras+'\r\n')
 while True:
   data = irc.recv(8192)
   print (data)
-  usrmsg = data.split(':')[-1]
+  usrmsg = data.split(':')[-1].strip()
   firstmsg = usrmsg.split(' ')[0]
   dangerfind = firstmsg.lower()
   if firstmsg.find('!colors') != -1 or firstmsg.find('!colours') != -1:
     chan = data.split(' ')[2]
     irc.send('PRIVMSG '+chan+' :\0031_______________________________________________________________________\r\n')
     irc.send('PRIVMSG '+chan+' :\0031|\0030 0\0031 | 1 |\0032 2\0031 |\0033 3\0031 |\0034 4\0031 |\0035 5\0031 |\0036 6\0031 |\0037 7\0031 |\0038 8\0031 |\0039 9\0031 |\00310 10\0031 |\00311 11\0031 |\00312 12\0031 |\00313 13\0031 |\00314 14\0031 |\00315 15\0031 |\r\n')
+  if firstmsg == "!swan":
+    chan = data.split(' ')[2]
+    try:
+      arg1 = usrmsg.split(' ')[1]
+    except:
+      arg1 = "ERROR"
+    if arg1 == "source":
+      irc.send('PRIVMSG '+chan+' :Here you can find my bots source: https://github.com/Swanmark/PyBot | This is my first script/program I\'ve written, ever. Please don\'t hate .. a lot.\r\n')
   if firstmsg.find('!conversion') != -1:
     chan = data.split(' ')[2]
     try:
