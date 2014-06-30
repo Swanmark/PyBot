@@ -130,7 +130,7 @@ while True:
       l = open('./gamedata/level/'+nick+'.txt', 'w')
       a.write("50")
       d.write("50")
-      e.write("0")
+      e.write("null")
       l. write("1")
       a.close()
       d.close()
@@ -152,39 +152,77 @@ while True:
       e = open('./gamedata/experience/'+nick+'.txt', 'r')
       l = open('./gamedata/level/'+nick+'.txt', 'r')
       useratt = int(a.read())
+      print useratt
       userdef = int(d.read())
-      userexp = int(e.read())
-      userlevel = int(l.read())
+      print userdef
+      userexp = e.read()
+      print userexp
+      userlvl = int(l.read())
+      print userlvl
       a.close()
       d.close()
       e.close()
       l.close()
     except:
       irc.send('PRIVMSG '+chan+' :Failed to read account data. Please create an account by typing !create.\r\n')
+      useratt = "error"
+      userdef = "error"
+      userexp = "error"
+      userlvl = "error"
     if target == "npc" and target != "error":
       attchance = int(randrange(1, 100))
       print attchance
-      if attchance >= userdef:
+      if attchance >= userdef and userdef != "error":
         try:
           e = open('./gamedata/experience/'+nick+'.txt', 'r')
           print "Trying to calculate experience gains."
-          uxp = int(e.read())
-          print (uxp)
-          print (userlevel)
-          print (uxp+userlevel)
-#          e.write(uxp)
+          uxp = e.read()
           e.close()
-          irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! You hit the NPC for '+str(attchance)+', enough to kill it. You gain '+str(userlevel)+' experience.\r\n')
+          e = open('./gamedata/experience/'+nick+'.txt', 'w')
+          print uxp
+          if uxp.strip() == "null":
+            e.write("1")
+          else:
+            intxp = int(uxp)
+            gainedxp = intxp + userlvl
+            print gainedxp
+            e.write(str(gainedxp))
+          e.close()
+          irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! You hit the NPC for '+str(attchance)+', enough to kill it. You gain '+str(userlvl)+' experience.\r\n')
         except:
           irc.send('PRIVMSG '+chan+' :Error. Failed to read account data. Logged.\r\n')
           log = open('./gamedata/logs/errors.txt', 'a')
           getdate = os.popen("date")
           now = ''.join(getdate)
-          log.write(now+" - Couldn't read account data from user '+nick+' when user should have an account.\r\n")
+          log.write(now+" - Couldn't read account data from user "+str(nick)+" when user should have an account.\r\n")
           log.close()
-      elif attchance <= userdef:
+      elif attchance <= userdef and userdef != "error":
         irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! The NPC blocks the attack and you gain no experience.\r\n')
-      
+  if firstmsg == "!mystats":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = str(user.replace(':', '')).lower()
+    try:
+      a = open('./gamedata/attack/'+nick+'.txt', 'r')
+      d = open('./gamedata/defence/'+nick+'.txt', 'r')
+      e = open('./gamedata/experience/'+nick+'.txt', 'r')
+      l = open('./gamedata/level/'+nick+'.txt', 'r')
+      useratt = str(a.read())
+      userdef = str(d.read())
+      userexp = str(e.read())
+      userlvl = str(l.read())
+      a.close()
+      d.close()
+      e.close()
+      l.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Could not read from your account. Try creating one with !create.\r\n')
+      useratt = "error"
+      userdef = "error"
+      userexp = "error"
+      userlvl = "error"
+    if useratt != "error":
+      irc.send('PRIVMSG '+chan+' :Attack: '+useratt+', Defence: '+userdef+', Experience: '+userexp.strip()+', Level: '+userlvl+'.\r\n')
   if firstmsg.find('!conversion') != -1:
     chan = data.split(' ')[2]
     try:
