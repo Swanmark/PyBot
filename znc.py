@@ -3,11 +3,12 @@
 import socket
 import time
 import os
-from random import randrange
+import random
 import urllib2
 import ssl
 import math
 import json
+from random import randrange
 #coinking readings
 a = open('/home/swanmark/python/coinking/data/scrypt.txt', 'r')
 b = open('/home/swanmark/python/coinking/data/scryptn.txt', 'r')
@@ -101,6 +102,11 @@ while True:
     chan = data.split(' ')[2]
     irc.send('PRIVMSG '+chan+' :\0031_______________________________________________________________________\r\n')
     irc.send('PRIVMSG '+chan+' :\0031|\0030 0\0031 | 1 |\0032 2\0031 |\0033 3\0031 |\0034 4\0031 |\0035 5\0031 |\0036 6\0031 |\0037 7\0031 |\0038 8\0031 |\0039 9\0031 |\00310 10\0031 |\00311 11\0031 |\00312 12\0031 |\00313 13\0031 |\00314 14\0031 |\00315 15\0031 |\r\n')
+  if firstmsg == "!pun":
+    chan = data.split(' ')[2]
+    puns = open('puns.txt').read().splitlines()
+    selectedpun = random.choice(puns)
+    irc.send('PRIVMSG '+chan+' :'+selectedpun+'\r\n')
   if firstmsg == "!swan":
     chan = data.split(' ')[2]
     try:
@@ -108,7 +114,77 @@ while True:
     except:
       arg1 = "ERROR"
     if arg1 == "source":
-      irc.send('PRIVMSG '+chan+' :Here you can find my bots source: https://github.com/Swanmark/PyBot | This is my first script/program I\'ve written, ever. Please don\'t hate .. a lot.\r\n')
+      irc.send('PRIVMSG '+chan+' :Here you can find my bot\'s source: https://github.com/Swanmark/PyBot | This is my first script/program I\'ve written, ever. Please don\'t hate .. a lot.\r\n')
+#Start of game-thingy
+  if firstmsg == "!create":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = str(user.replace(':', '')).lower()
+    try:
+      f = open('./gamedata/attack/'+nick+'.txt', 'r')
+      irc.send('PRIVMSG '+chan+' :Profile found: '+nick+', can\'t create again.\r\n')
+    except:
+      a = open('./gamedata/attack/'+nick+'.txt', 'w')
+      d = open('./gamedata/defence/'+nick+'.txt', 'w')
+      e = open('./gamedata/experience/'+nick+'.txt', 'w')
+      l = open('./gamedata/level/'+nick+'.txt', 'w')
+      a.write("50")
+      d.write("50")
+      e.write("0")
+      l. write("1")
+      a.close()
+      d.close()
+      e.close()
+      l.close()
+      irc.send('PRIVMSG '+chan+' :Profile created: '+nick+'!\r\n')
+  if firstmsg == "!attack":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = str(user.replace(':', '')).lower()
+    try:
+      target = usrmsg.split(' ')[1].lower()
+    except:
+      target = "error"
+      irc.send('PRIVMSG '+chan+' :You need to provide a target! This should be a user in the channel or "NPC".\r\n')
+    try:
+      a = open('./gamedata/attack/'+nick+'.txt', 'r')
+      d = open('./gamedata/defence/'+nick+'.txt', 'r')
+      e = open('./gamedata/experience/'+nick+'.txt', 'r')
+      l = open('./gamedata/level/'+nick+'.txt', 'r')
+      useratt = int(a.read())
+      userdef = int(d.read())
+      userexp = int(e.read())
+      userlevel = int(l.read())
+      a.close()
+      d.close()
+      e.close()
+      l.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Failed to read account data. Please create an account by typing !create.\r\n')
+    if target == "npc" and target != "error":
+      attchance = int(randrange(1, 100))
+      print attchance
+      if attchance >= userdef:
+        try:
+          e = open('./gamedata/experience/'+nick+'.txt', 'r')
+          print "Trying to calculate experience gains."
+          uxp = int(e.read())
+          print (uxp)
+          print (userlevel)
+          print (uxp+userlevel)
+#          e.write(uxp)
+          e.close()
+          irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! You hit the NPC for '+str(attchance)+', enough to kill it. You gain '+str(userlevel)+' experience.\r\n')
+        except:
+          irc.send('PRIVMSG '+chan+' :Error. Failed to read account data. Logged.\r\n')
+          log = open('./gamedata/logs/errors.txt', 'a')
+          getdate = os.popen("date")
+          now = ''.join(getdate)
+          log.write(now+" - Couldn't read account data from user '+nick+' when user should have an account.\r\n")
+          log.close()
+      elif attchance <= userdef:
+        irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! The NPC blocks the attack and you gain no experience.\r\n')
+      
   if firstmsg.find('!conversion') != -1:
     chan = data.split(' ')[2]
     try:
