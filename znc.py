@@ -155,7 +155,7 @@ while True:
       userdef = "error"
       userexp = "error"
       userlvl = "error"
-    if target == "npc" and target != "error":
+    if target == "npc" and target != "error" and isbanned == "false":
       attchance = int(randrange(1, 100))
       print attchance
       if attchance >= userdef and userdef != "error":
@@ -170,9 +170,8 @@ while True:
           useratt = jload['attack']
           userdef = jload['defence']
           userlvl = jload['level']
-          print userlvl
+          isbanned = jload['banned']
           e = open('./gamedata/users/'+nick+'.txt', 'w')
-          print "Old experience data: "+str(oldxp)
           if str(oldxp.strip()) == "null":
             gainedxp = "1"
           else:
@@ -191,6 +190,8 @@ while True:
           log.close()
       elif attchance <= userdef and userdef != "error":
         irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! The NPC blocks the attack and you gain no experience.\r\n')
+    elif isbanned == "true":
+      irc.send('PRIVMSG '+chan+' :Sorry, '+nick+'. You are \0034banned\0030f.\r\n')
   if firstmsg.lower() == "!mystats":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
@@ -214,6 +215,62 @@ while True:
       isbanned = "error"
     if useratt != "error":
       irc.send('PRIVMSG '+chan+' :Attack: '+useratt+', Defence: '+userdef+', Experience: '+userexp.strip()+', Level: '+userlvl+'. Banned? '+str(isbanned)+'.\r\n')
+  if firstmsg.lower() == "!ban":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = str(user.replace(':', '')).lower()
+    if nick == "swanmark":
+      try:
+        targetuser = usrmsg.split(' ')[1].lower()
+      except:
+        targetuser = "error"
+        irc.send('PRIVMSG '+chan+' :You need to provide a target user!\r\n')
+      if targetuser != "error":
+        a = open('./gamedata/users/'+targetuser+'.txt', 'r')
+        jloaded = str(a.read())
+        jload = json.loads(jloaded)
+        a.close()
+        useratt = str(jload['attack'])
+        userdef = str(jload['defence'])
+        userlvl = str(jload['level'])
+        userexp = str(jload['xp'])
+        isbanned = str(jload['banned'])
+        if isbanned == "true":
+          irc.send('PRIVMSG '+chan+' :'+targetuser+' is already banned. To unban type !unban '+targetuser+'.\r\n')
+        else:
+          ban = json.dumps({'level':userlvl, 'xp':userexp, 'attack':useratt, 'defence':userdef, 'banned':"true"})
+          a = open('./gamedata/users/'+targetuser+'.txt', 'w')
+          a.write(str(ban))
+          a.close()
+          irc.send('PRIVMSG '+chan+' :Banned '+targetuser+'.\r\n')
+  if firstmsg.lower() == "!unban":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = str(user.replace(':', '')).lower()
+    if nick == "swanmark":
+      try:
+        targetuser = usrmsg.split(' ')[1].lower()
+      except:
+        targetuser = "error"
+        irc.send('PRIVMSG '+chan+' :You need to provide a target user!\r\n')
+      if targetuser != "error":
+        a = open('./gamedata/users/'+targetuser+'.txt', 'r')
+        jloaded = str(a.read())
+        jload = json.loads(jloaded)
+        a.close()
+        useratt = str(jload['attack'])
+        userdef = str(jload['defence'])
+        userlvl = str(jload['level'])
+        userexp = str(jload['xp'])
+        isbanned = str(jload['banned'])
+        if isbanned == "false":
+          irc.send('PRIVMSG '+chan+' :'+targetuser+' isn\'t banned. To ban type !ban '+targetuser+'.\r\n')
+        else:
+          ban = json.dumps({'level':userlvl, 'xp':userexp, 'attack':useratt, 'defence':userdef, 'banned':"false"})
+          a = open('./gamedata/users/'+targetuser+'.txt', 'w')
+          a.write(str(ban))
+          a.close()
+          irc.send('PRIVMSG '+chan+' :Unbanned '+targetuser+'.\r\n')
   if firstmsg.find('!conversion') != -1:
     chan = data.split(' ')[2]
     try:
