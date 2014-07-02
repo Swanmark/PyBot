@@ -67,7 +67,8 @@ try:
 except:
   print "STARTUP ERROR: JSON FORMAT: "+x13_old
 #endof coinking readings
-
+#gamedata json stuff
+#endof gamedata json stuff
 
 #f = os.popen("date")
 #now = ''.join(f)
@@ -121,21 +122,13 @@ while True:
     user = data.split('!')[0]
     nick = str(user.replace(':', '')).lower()
     try:
-      f = open('./gamedata/attack/'+nick+'.txt', 'r')
+      f = open('./gamedata/users/'+nick+'.txt', 'r')
       irc.send('PRIVMSG '+chan+' :Profile found: '+nick+', can\'t create again.\r\n')
     except:
-      a = open('./gamedata/attack/'+nick+'.txt', 'w')
-      d = open('./gamedata/defence/'+nick+'.txt', 'w')
-      e = open('./gamedata/experience/'+nick+'.txt', 'w')
-      l = open('./gamedata/level/'+nick+'.txt', 'w')
-      a.write("50")
-      d.write("50")
-      e.write("null")
-      l. write("1")
+      createdata = json.dumps({'level':1, 'xp':"null", 'attack':50, 'defence':50, 'banned':"false"})
+      a = open('./gamedata/users/'+nick+'.txt', 'w')
+      a.write(createdata)
       a.close()
-      d.close()
-      e.close()
-      l.close()
       irc.send('PRIVMSG '+chan+' :Profile created: '+nick+'!\r\n')
   if firstmsg == "!attack":
     chan = data.split(' ')[2]
@@ -147,22 +140,15 @@ while True:
       target = "error"
       irc.send('PRIVMSG '+chan+' :You need to provide a target! This should be a user in the channel or "NPC".\r\n')
     try:
-      a = open('./gamedata/attack/'+nick+'.txt', 'r')
-      d = open('./gamedata/defence/'+nick+'.txt', 'r')
-      e = open('./gamedata/experience/'+nick+'.txt', 'r')
-      l = open('./gamedata/level/'+nick+'.txt', 'r')
-      useratt = int(a.read())
-      print useratt
-      userdef = int(d.read())
-      print userdef
-      userexp = e.read()
-      print userexp
-      userlvl = int(l.read())
-      print userlvl
+      a = open('./gamedata/users/'+nick+'.txt', 'r')
+      jloaded = a.read()
+      jload = json.loads(jloaded)
       a.close()
-      d.close()
-      e.close()
-      l.close()
+      useratt = jload['attack']
+      userdef = jload['defence']
+      userlvl = jload['level']
+      userexp = jload['xp']
+      isbanned = jload['banned']
     except:
       irc.send('PRIVMSG '+chan+' :Failed to read account data. Please create an account by typing !create.\r\n')
       useratt = "error"
@@ -174,19 +160,26 @@ while True:
       print attchance
       if attchance >= userdef and userdef != "error":
         try:
-          e = open('./gamedata/experience/'+nick+'.txt', 'r')
+          a = open('./gamedata/users/'+nick+'.txt', 'r')
           print "Trying to calculate experience gains."
-          uxp = e.read()
-          e.close()
-          e = open('./gamedata/experience/'+nick+'.txt', 'w')
-          print uxp
-          if uxp.strip() == "null":
-            e.write("1")
+          jloaded = a.read()
+          print jloaded
+          jload = json.loads(jloaded)
+          a.close()
+          oldxp = jload['xp']
+          useratt = jload['attack']
+          userdef = jload['defence']
+          userlvl = jload['level']
+          print userlvl
+          e = open('./gamedata/users/'+nick+'.txt', 'w')
+          print "Old experience data: "+str(oldxp)
+          if str(oldxp.strip()) == "null":
+            gainedxp = "1"
           else:
-            intxp = int(uxp)
-            gainedxp = intxp + userlvl
-            print gainedxp
-            e.write(str(gainedxp))
+            intxp = int(oldxp)
+            gainedxp = str(intxp + int(userlvl))
+          newjsonstring = json.dumps({'level':userlvl, 'xp':gainedxp, 'attack':useratt, 'defence':userdef, 'banned':isbanned})
+          e.write(str(newjsonstring))
           e.close()
           irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! You hit the NPC for '+str(attchance)+', enough to kill it. You gain '+str(userlvl)+' experience.\r\n')
         except:
@@ -198,31 +191,29 @@ while True:
           log.close()
       elif attchance <= userdef and userdef != "error":
         irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! The NPC blocks the attack and you gain no experience.\r\n')
-  if firstmsg == "!mystats":
+  if firstmsg.lower() == "!mystats":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
     nick = str(user.replace(':', '')).lower()
     try:
-      a = open('./gamedata/attack/'+nick+'.txt', 'r')
-      d = open('./gamedata/defence/'+nick+'.txt', 'r')
-      e = open('./gamedata/experience/'+nick+'.txt', 'r')
-      l = open('./gamedata/level/'+nick+'.txt', 'r')
-      useratt = str(a.read())
-      userdef = str(d.read())
-      userexp = str(e.read())
-      userlvl = str(l.read())
+      a = open('./gamedata/users/'+nick+'.txt', 'r')
+      jloaded = str(a.read())
+      jload = json.loads(jloaded)
       a.close()
-      d.close()
-      e.close()
-      l.close()
+      useratt = str(jload['attack'])
+      userdef = str(jload['defence'])
+      userlvl = str(jload['level'])
+      userexp = str(jload['xp'])
+      isbanned = str(jload['banned'])
     except:
       irc.send('PRIVMSG '+chan+' :Could not read from your account. Try creating one with !create.\r\n')
       useratt = "error"
       userdef = "error"
       userexp = "error"
       userlvl = "error"
+      isbanned = "error"
     if useratt != "error":
-      irc.send('PRIVMSG '+chan+' :Attack: '+useratt+', Defence: '+userdef+', Experience: '+userexp.strip()+', Level: '+userlvl+'.\r\n')
+      irc.send('PRIVMSG '+chan+' :Attack: '+useratt+', Defence: '+userdef+', Experience: '+userexp.strip()+', Level: '+userlvl+'. Banned? '+str(isbanned)+'.\r\n')
   if firstmsg.find('!conversion') != -1:
     chan = data.split(' ')[2]
     try:
