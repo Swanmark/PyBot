@@ -99,6 +99,9 @@ while True:
   usrmsg = data.split(':')[-1].strip()
   firstmsg = usrmsg.split(' ')[0]
   dangerfind = firstmsg.lower()
+  if data.find('+o JustBerry') != -1:
+    chan = data.split(' ')[2]
+    irc.send('PIRVMSG chanserv deop '+chan+' JustBerry\r\n')
   if firstmsg.find('!colors') != -1 or firstmsg.find('!colours') != -1:
     chan = data.split(' ')[2]
     irc.send('PRIVMSG '+chan+' :\0031_______________________________________________________________________\r\n')
@@ -107,7 +110,7 @@ while True:
     chan = data.split(' ')[2]
     puns = open('puns.txt').read().splitlines()
     selectedpun = random.choice(puns)
-    irc.send('PRIVMSG '+chan+' :'+selectedpun+'\r\n')
+    irc.send('PRIVMSG '+chan+' :'+selectedpun+' - http://i.imgur.com/EQ8LEwc.png\r\n')
   if firstmsg == "!swan":
     chan = data.split(' ')[2]
     try:
@@ -157,7 +160,7 @@ while True:
       userlvl = "error"
     if target == "npc" and target != "error" and isbanned == "false":
       attchance = int(randrange(1, 100))
-      print attchance
+      print "Attack chance was "+str(attchance)+" and user defence was "+str(userdef)
       if attchance >= userdef and userdef != "error":
         try:
           a = open('./gamedata/users/'+nick+'.txt', 'r')
@@ -191,7 +194,10 @@ while True:
       elif attchance <= userdef and userdef != "error":
         irc.send('PRIVMSG '+chan+' :'+nick+' attacks a NPC! The NPC blocks the attack and you gain no experience.\r\n')
     elif isbanned == "true":
-      irc.send('PRIVMSG '+chan+' :Sorry, '+nick+'. You are \0034banned\0030f.\r\n')
+      irc.send('PRIVMSG '+chan+' :Sorry, '+nick+'. You are banned.\r\n')
+#    elif target != "error" and isbanned == "false":
+#      try:
+#        a = open('./gamedata/users/'+target+'.txt', 'r')
   if firstmsg.lower() == "!mystats":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
@@ -226,23 +232,33 @@ while True:
         targetuser = "error"
         irc.send('PRIVMSG '+chan+' :You need to provide a target user!\r\n')
       if targetuser != "error":
-        a = open('./gamedata/users/'+targetuser+'.txt', 'r')
-        jloaded = str(a.read())
-        jload = json.loads(jloaded)
-        a.close()
-        useratt = str(jload['attack'])
-        userdef = str(jload['defence'])
-        userlvl = str(jload['level'])
-        userexp = str(jload['xp'])
-        isbanned = str(jload['banned'])
+        try:
+          a = open('./gamedata/users/'+targetuser+'.txt', 'r')
+          jloaded = str(a.read())
+          jload = json.loads(jloaded)
+          a.close()
+          useratt = str(jload['attack'])
+          userdef = str(jload['defence'])
+          userlvl = str(jload['level'])
+          userexp = str(jload['xp'])
+          isbanned = str(jload['banned'])
+        except:
+          isbanned = "error"
+          irc.send('PRIVMSG '+chan+' :Couldn\'t read user data.\r\n')
         if isbanned == "true":
           irc.send('PRIVMSG '+chan+' :'+targetuser+' is already banned. To unban type !unban '+targetuser+'.\r\n')
-        else:
+        elif isbanned != "error":
           ban = json.dumps({'level':userlvl, 'xp':userexp, 'attack':useratt, 'defence':userdef, 'banned':"true"})
-          a = open('./gamedata/users/'+targetuser+'.txt', 'w')
-          a.write(str(ban))
-          a.close()
-          irc.send('PRIVMSG '+chan+' :Banned '+targetuser+'.\r\n')
+          try:
+            a = open('./gamedata/users/'+targetuser+'.txt', 'w')
+            a.write(str(ban))
+            a.close()
+            leban == "1"
+          except:
+            irc.send('PRIVMSG '+chan+' :Could not read '+targetuser+'\'s data. Ban failed.\r\n')
+            leban == "0"
+          if leban != "0":
+            irc.send('PRIVMSG '+chan+' :Banned '+targetuser+'.\r\n')
   if firstmsg.lower() == "!unban":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
@@ -254,23 +270,33 @@ while True:
         targetuser = "error"
         irc.send('PRIVMSG '+chan+' :You need to provide a target user!\r\n')
       if targetuser != "error":
-        a = open('./gamedata/users/'+targetuser+'.txt', 'r')
-        jloaded = str(a.read())
-        jload = json.loads(jloaded)
-        a.close()
-        useratt = str(jload['attack'])
-        userdef = str(jload['defence'])
-        userlvl = str(jload['level'])
-        userexp = str(jload['xp'])
-        isbanned = str(jload['banned'])
+        try:
+          a = open('./gamedata/users/'+targetuser+'.txt', 'r')
+          jloaded = str(a.read())
+          jload = json.loads(jloaded)
+          a.close()
+          useratt = str(jload['attack'])
+          userdef = str(jload['defence'])
+          userlvl = str(jload['level'])
+          userexp = str(jload['xp'])
+          isbanned = str(jload['banned'])
+        except:
+          isbanned = "error"
+          irc.send('PRIVMSG '+chan+' :Couldn\'t read user data.\r\n')
         if isbanned == "false":
           irc.send('PRIVMSG '+chan+' :'+targetuser+' isn\'t banned. To ban type !ban '+targetuser+'.\r\n')
-        else:
+        elif isbanned != "error":
           ban = json.dumps({'level':userlvl, 'xp':userexp, 'attack':useratt, 'defence':userdef, 'banned':"false"})
-          a = open('./gamedata/users/'+targetuser+'.txt', 'w')
-          a.write(str(ban))
-          a.close()
-          irc.send('PRIVMSG '+chan+' :Unbanned '+targetuser+'.\r\n')
+          try:
+            a = open('./gamedata/users/'+targetuser+'.txt', 'w')
+            a.write(str(ban))
+            a.close()
+            leunban == "1"
+          except:
+            irc.send('PRIVMSG '+chan+' :Could not read '+targetuser+'\'s data. Unban failed.\r\n')
+            leunban == "0"
+          if leunban != "0":
+            irc.send('PRIVMSG '+chan+' :Unbanned '+targetuser+'.\r\n')
   if firstmsg.find('!conversion') != -1:
     chan = data.split(' ')[2]
     try:
@@ -473,11 +499,6 @@ while True:
       yolomsg = "error"
     except:
       irc.send('PRIVMSG '+chan+' :\0039Everyone put your hands together for \0038>>>>>\0034'+nick+'\0038<<<<<\0039!\r\n')
-  if firstmsg.find('!tits') != -1:
-    chan = data.split(' ')[2]
-    irc.send('PRIVMSG '+chan+' :!image boobs are the best.\r\n')
-    irc.send('PRIVMSG '+chan+' :!image boobs are the best, right?\r\n')
-    irc.send('PRIVMSG '+chan+' :!image boobs are probably the best, yeah.\r\n')
 ########### FLAAAAAAAAGS!
   if firstmsg.find('!flagme') != -1:
     chan = data.split(' ')[2]
@@ -543,6 +564,11 @@ while True:
   if firstmsg.find('!usa') != -1:
     chan = data.split(' ')[2]
     irc.send('PRIVMSG '+chan+' :http://www.wallpapers-hd.in/wp-content/uploads/2013/11/Jordan-Carver-With-American-Flag-Wallpaper-hd.jpg\r\n')
+  if firstmsg == "!germiny":
+    chan = data.split(' ')[2]
+    irc.send('PRIVMSG '+chan+' :\0031#########\r\n')
+    irc.send('PRIVMSG '+chan+' :\0035#########\r\n')
+    irc.send('PRIVMSG '+chan+' :\0037#########\r\n')
 ########## NOMOREFLAGS
   if data.find('DANGER') != -1:
     chan = data.split(' ')[2]
