@@ -364,6 +364,111 @@ while True:
         irc.send('PRIVMSG '+chan+' :Failure. You are not level 1 or above.\r\n')
     except:
       irc.send('PRIVMSG '+chan+' :Uh oh!\r\n')
+  if firstmsg == "!cinfo":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      target = str(usrmsg.split(' ')[1]).strip()
+    except:
+      irc.send('PRIVMSG '+chan+' :You need to provide an argument (coin), example "doge" (!cinfo doge)\r\n')
+      target = "error"
+    try:
+      apifile = open('./apikey.txt')
+      key = str(apifile.read()).strip()
+      print key
+      apifile.close()
+      jloaded = str(urllib2.urlopen('https://coinking.io/api.php?key='+key+'&type=coininfo&coin='+target+'&output=json').read())
+      jload3d = str(urllib2.urlopen('https://coinking.io/api.php?key='+key+'&type=poolhashratebycoin&coin='+target+'&output=json').read())
+      jload = json.loads(jloaded)
+      jl0ad = json.loads(jload3d)
+      algo = jload['algo']
+      port = jload['port']
+      reward = jload['reward']
+      blocktime = jload['blocktime']
+      diff = jload['difficulty']
+      name = jload['name']
+      nick = jload['nickname']
+      khash = jl0ad['khash']
+      mhash = jl0ad['mhash']
+      ghash = jl0ad['ghash']
+      apierror = "false"
+      if name is None:
+        exists = "false"
+      else:
+        exists = "true"
+      print exists
+      if mhash <= 1000 and mhash >= 1:
+        hashrate = str(mhash)+" MH/s"
+      elif mhash < 1:
+        hashrate = str(khash)+" KH/s"
+      elif mhash >= 1000:
+        hashrate = str(ghash)+" GH/s"
+      else:
+        hashrate = "error"
+    except:
+      irc.send('PRIVMSG '+chan+' :Could not read API.\r\n')
+      apierror = "true"
+    if apierror != "true" and target != "error" and exists == "true":
+      irc.send('PRIVMSG '+chan+' :Coin: '+name+' ['+nick+'] | Port: '+port+' | Algorithm: '+algo+' | Block rewards: '+reward+' | Block time: '+blocktime+' seconds | Diff: '+diff+' | Hashrate: '+hashrate+'.\r\n')
+    elif target != "error" and apierror != "true" and exists == "true":
+      irc.send('PRIVMSG '+chan+' :You need to provide an argument (coin), example "doge" (!cinfo doge)\r\n')
+    elif target != "error" and exists == "false":
+      irc.send('PRIVMSG '+chan+' :Coin '+str(target)+' not found!\r\n')
+  if firstmsg == "@quiet":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      f = open('./users/'+nick+'.txt', 'r')
+      level = int(f.read())
+      print (level)
+      f.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+    try:
+      target = usrmsg.split(' ')[1]
+    except:
+      print "Did not find an argument with command @quiet"
+      target = "error"
+    try:
+      if level >= 5 and target != "error":
+        irc.send('PRIVMSG chanserv op '+chan+'\r\n')
+        time.sleep(0.1)
+        irc.send('MODE '+chan+' +q '+target+'\r\n')
+        irc.send('PRIVMSG chanserv deop '+chan+'\r\n')
+        level = 0
+      else:
+        irc.send('PRIVMSG '+chan+' :Failure. You are not level 5 or above.\r\n')
+    except:
+      print "Uh oh!"
+  if firstmsg == "@unquiet":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      f = open('./users/'+nick+'.txt', 'r')
+      level = int(f.read())
+      print (level)
+      f.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+    try:
+      target = usrmsg.split(' ')[1]
+    except:
+      print "Did not find an argument with command @unquiet"
+      target = "error"
+    try:
+      if level >= 5 and target != "error":
+        irc.send('PRIVMSG chanserv op '+chan+'\r\n')
+        time.sleep(0.1)
+        irc.send('MODE '+chan+' -q '+target+'\r\n')
+        irc.send('PRIVMSG chanserv deop '+chan+'\r\n')
+        level = 0
+      else:
+        irc.send('PRIVMSG '+chan+' :Failure. You are not level 5 or above.\r\n')
+    except:
+      print "Uh oh!"
   if firstmsg.find('!date') != -1:
     f = os.popen("date")
     now = ''.join(f)
