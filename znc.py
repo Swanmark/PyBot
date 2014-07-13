@@ -10,6 +10,7 @@ import math
 import json
 from random import randrange
 #coinking readings
+"""  Commenting this out temporarily, don't want to delete it just jet
 a = open('/home/swanmark/python/coinking/data/scrypt.txt', 'r')
 b = open('/home/swanmark/python/coinking/data/scryptn.txt', 'r')
 c = open('/home/swanmark/python/coinking/data/sha256.txt', 'r')
@@ -66,6 +67,7 @@ try:
   x13_hash = str(jX13_old['hashrate'])
 except:
   print "STARTUP ERROR: JSON FORMAT: "+x13_old
+"""
 #endof coinking readings
 #gamedata json stuff
 #endof gamedata json stuff
@@ -685,6 +687,11 @@ while True:
 #    irc.send('PRIVMSG '+chan+' :\0030'+nick+'\00312'+nick*3+'\0030'+nick+'\r\n')
 #    irc.send('PRIVMSG '+chan+' :\00312'+nick*2+'\0030'+nick+'\00312'+nick*2+'\r\n')
 #    irc.send('PRIVMSG '+chan+' :\0030'+nick+'\00312'+nick*3+'\0030'+nick+'\r\n')
+  if firstmsg == "!holland":
+    chan = data.split(' ')[2]
+    irc.send('PRIVMSG '+chan+' :\0034###############\r\n')
+    irc.send('PRIVMSG '+chan+' :\0030###############\r\n')
+    irc.send('PRIVMSG '+chan+' :\00312###############\r\n')
   if firstmsg.find('!spain') != -1:
     chan = data.split(' ')[2]
     irc.send('PRIVMSG '+chan+' :\0034###############\r\n')
@@ -863,6 +870,7 @@ while True:
           irc.send('PRIVMSG '+chan+' :Something went wrong.[ELSE]\r\n')
       except:
         irc.send('PRIVMSG '+chan+' :Something went wrong.[EXCEPT]\r\n')
+  """ Commenting this out temporarily, don't want to delete it just jet
   a = open('/home/swanmark/python/coinking/data/scrypt.txt', 'r')
   scrypt_new = a.read()
   a.close()
@@ -954,3 +962,4 @@ while True:
     irc.send('PRIVMSG #coinking :\00312X-13 multiport is now mining\0034 '+x13_name+' ['+x13_nick+']\00312 - '+str(round(float(x13_hash)/1000, 3))+' GH/s @ diff: '+x13_diff+'.\r\n')
     x13_oldname = x13_name
   time.sleep(0.01)
+  """
