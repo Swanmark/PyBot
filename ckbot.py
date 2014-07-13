@@ -66,16 +66,21 @@ except:
 nick = "DogeG0D"
 server = "irc.freenode.net"
 ras = "#coinking"
+rrr = open('./nickservpass.txt', 'r')
+nickservpass = str(rrr.read())
+rrr.close()
 bSize = "8192"
 irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 irc.connect((server, 6667))
 time.sleep(1)
 irc.recv(8192)
 irc.send('NICK '+nick+'\r\n')
-irc.send('USER SWAG SWAG SWAG :SWAG\r\n')
-time.sleep(1)
+irc.send('USER Coinz Coinz Coinz :#coinking fun stuff\r\n')
+time.sleep(2)
 irc.send('JOIN '+ras+'\r\n')
-
+irc.send('PRIVMSG nickserv :IDENTIFY Swanmark '+nickservpass+'\r\n')
+irc.send('PRIVMSG chanserv :deop #coinking\r\n')
+irc.send('PRIVMSG chanserv :voice #coinking\r\n')
 while True:
   data = irc.recv(8192)
   print (data)
