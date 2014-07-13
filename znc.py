@@ -158,7 +158,7 @@ while True:
       userdef = "error"
       userexp = "error"
       userlvl = "error"
-    if target == "npc" and target != "error" and isbanned == "false":
+    if target == "npc" and target != "error" and isbanned == "false" and useratt != "error":
       attchance = int(randrange(1, 100))
       print "Attack chance was "+str(attchance)+" and user defence was "+str(userdef)
       if attchance >= userdef and userdef != "error":
@@ -415,7 +415,7 @@ while True:
       irc.send('PRIVMSG '+chan+' :You need to provide an argument (coin), example "doge" (!cinfo doge)\r\n')
     elif target != "error" and exists == "false":
       irc.send('PRIVMSG '+chan+' :Coin '+str(target)+' not found!\r\n')
-  if firstmsg == "@quiet":
+  if firstmsg == "#quiet":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
     nick = user.replace(':', '')
@@ -442,7 +442,7 @@ while True:
         irc.send('PRIVMSG '+chan+' :Failure. You are not level 5 or above.\r\n')
     except:
       print "Uh oh!"
-  if firstmsg == "@unquiet":
+  if firstmsg == "#unquiet":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
     nick = user.replace(':', '')
@@ -467,6 +467,54 @@ while True:
         level = 0
       else:
         irc.send('PRIVMSG '+chan+' :Failure. You are not level 5 or above.\r\n')
+    except:
+      print "Uh oh!"
+  if firstmsg == "#op":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      f = open('./users/'+nick+'.txt', 'r')
+      level = int(f.read())
+      print (level)
+      f.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+    try:
+      target = usrmsg.split(' ')[1]
+    except:
+      print "Did not find an argument with command @op"
+      target = nick
+    try:
+      if level >= 7 and target != "error":
+        irc.send('PRIVMSG chanserv op '+chan+' '+target+'\r\n')
+        level = 0
+      else:
+        irc.send('PRIVMSG '+chan+' :Failure. You are not level 7 or above.\r\n')
+    except:
+      print "Uh oh!"
+  if firstmsg == "#deop":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      f = open('./users/'+nick+'.txt', 'r')
+      level = int(f.read())
+      print (level)
+      f.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+    try:
+      target = usrmsg.split(' ')[1]
+    except:
+      print "Did not find an argument with command @deop"
+      target = nick
+    try:
+      if level >= 7 and target != "error":
+        irc.send('PRIVMSG chanserv deop '+chan+' '+target+'\r\n')
+        level = 0
+      else:
+        irc.send('PRIVMSG '+chan+' :Failure. You are not level 7 or above.\r\n')
     except:
       print "Uh oh!"
   if firstmsg.find('!date') != -1:
