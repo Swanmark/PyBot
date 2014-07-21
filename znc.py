@@ -99,8 +99,10 @@ while True:
   data = irc.recv(8192)
   print (data)
   usrmsg = data.split(':')[-1].strip()
+#  shii = data.split('PRIVMSG')[-1].strip().replace(':', 'þ')
+#  shiimsg = shii.split('þ')[-1]
+#  print shiimsg
   firstmsg = usrmsg.split(' ')[0]
-  dangerfind = firstmsg.lower()
   if data.find('+o JustBerry') != -1:
     chan = data.split(' ')[2]
     irc.send('PIRVMSG chanserv deop '+chan+' JustBerry\r\n')
@@ -121,6 +123,124 @@ while True:
       arg1 = "ERROR"
     if arg1 == "source":
       irc.send('PRIVMSG '+chan+' :Here you can find my bot\'s source: https://github.com/Swanmark/PyBot | This is my first script/program I\'ve written, ever. Please don\'t hate .. a lot.\r\n')
+#COINKING VOTE SHIT
+  if firstmsg.lower() == "!addcoin":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      f = open('./users/'+nick+'.txt', 'r')
+      level = int(f.read())
+      print (level)
+      f.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+    try:
+      name = str(usrmsg.split(' ')[1])
+      ticker = str(usrmsg.split(' ')[2])
+      algo = str(usrmsg.split(' ')[3])
+#      url = str(usrmsg.split(' ')[4])
+    except:
+      print "Did not find an argument with command @op"
+      try:
+        if name != "finished":
+          name = name
+      except:
+        name = "error"
+      try:
+        if ticker != "finished":
+          ticker = ticker
+      except:
+        ticker = "error"
+      try:
+        if algo != "finished":
+          algo = algo
+      except:
+        algo = "error"
+#      url = "error"
+    try:
+      if level >= 7:
+        irc.send('PRIVMSG '+chan+' :Added '+name+'\r\n')
+        level = 0
+      else:
+        irc.send('PRIVMSG '+chan+' :Failure. You are not level 7 or above.\r\n')
+    except:
+      print "Failed to report coin info or check levels .. should have level tho."
+    try:
+      coinfile = open('./coins.txt', 'r')
+      coinfileread = str(coinfile.read())
+      coinfile.close()
+      print "probably managed to read file(DEBUG)"
+      if coinfileread.find(name) != -1:
+        irc.send('PRIVMSG '+chan+' :This coin has already been added.\r\n')
+      elif name != "error" and name != "finished":
+        coinfile = open('./coins.txt', 'a')
+        coinfile.write(name+':'+ticker+':'+algo+':\n')
+        coinfile.close()
+      name = "finished"
+      ticker = "finished"
+      algo = "finished"
+#     url = "finished"
+    except:
+      print "Trying to open file for reading/writing, doesn't work."
+
+  if firstmsg.lower() == "!coins":
+    chan = data.split(' ')[2]
+    try:
+      coinfile = open('./coins.txt', 'r')
+      coins = coinfile.read()
+      coinfile.close()
+    except:
+      coins = "error"
+    if coins != "error":
+      with open('./coins.txt', 'r') as coinfile:
+        for line in coinfile:
+          name = line.split(':')[-0].strip()
+          ticker = line.split(':')[1].upper().strip()
+          algo = line.split(':')[-2].strip()
+          irc.send('PRIVMSG '+chan+' :'+name+' ['+ticker+'], algo: '+algo+'\r\n')
+          time.sleep(0.2)
+  if firstmsg.lower() == "!vote":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0].lower()
+    nick = user.replace(':', '')
+    try:
+      votedcoin = usrmsg.split(' ')[1].lower()
+    except:
+      votedcoin = "error"
+    if votedcoin != "error":
+      if os.path.exists('./votes/'+votedcoin+'.txt'):             #check if coin has been voted for previously (if file exists)
+        with open('./votes/'+votedcoin+'.txt', 'r+') as votefile: #open votefile
+          currentvotes = int(votefile.read())                     #read current votes
+          aftervote = currentvotes + 1                            #add one vote to current votes
+        if os.path.exists('./votes/users/'+nick+'.txt'):          #check if userfile exists
+          with open('./votes/users/'+nick+'.txt', 'r+') as userfile:#open userfile
+            currentcoins = userfile.read()                        #read current coin votes
+          if currentcoins.find(votedcoin) != -1:                  #check if coin user is trying to vote for has already been voted for by user
+            irc.send('PRIVMSG '+chan+' :You\'ve already voted for '+votedcoin+'.\r\n')
+            userok = "notok"                                      #testin stuf
+          else:
+            with open('./votes/users/'+nick+'.txt', 'a') as userfile: #trying to CREATE userfile, with w+ ??? :/
+              userfile.write(votedcoin+'\n')                           #write coin to userfile, so user can't vote for it again ...
+        else:
+          with open('./votes/users/'+nick+'.txt', 'w+') as userfile:
+            userfile.write(votedcoin+'\n')
+          with open('./votes/'+votedcoin+'.txt', 'w+') as writevote:#opening votefile to write vote
+            writevote.write(str(aftervote))
+            irc.send('PRIVMSG '+chan+' :'+nick.title()+' voted for '+votedcoin.title()+'.\r\n')
+      else:
+        with open('./votes/'+votedcoin+'.txt', 'w+') as votefile:
+          votefile.write("1")
+        irc.send('PRIVMSG '+chan+' :'+nick.title()+' voted for '+votedcoin.title()+'\r\n')
+#i believe the following is an unnecissary duplicate of above code but it's late and I need to hit the bed, whatever.
+        if os.path.exists('./votes/users/'+nick+'.txt'):          #check if userfile exists
+          with open('./votes/users/'+nick+'.txt', 'r+') as userfile:#open userfile
+            currentcoins = userfile.read()                        #read current coin votes
+        else:
+          with open('./votes/users/'+nick+'.txt', 'w+') as userfile:
+            userfile.write(votedcoin)
+
+#END OF COINKING VOTE SHIT
 #Start of game-thingy
   if firstmsg == "!create":
     chan = data.split(' ')[2]
@@ -366,12 +486,41 @@ while True:
         irc.send('PRIVMSG '+chan+' :Failure. You are not level 1 or above.\r\n')
     except:
       irc.send('PRIVMSG '+chan+' :Uh oh!\r\n')
+  if firstmsg == "!port":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      target = str(usrmsg.split(' ')[1]).strip()
+    except:
+      target = "error"
+      irc.send('PRIVMSG '+chan+' :Missing argument! Argument should be a coin nickname.\r\n')
+    try:
+      portfile = open('/home/jake/ports.txt', 'r')
+      jread = portfile.read()
+      portfile.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Failed to read data. Sorry.\r\n')
+    if target != "error":
+      try:
+        jsonstr = json.loads(jread)
+        tickerport = str(jsonstr[target])
+      except:
+        tickerport = "error"
+      if tickerport != "error":
+        irc.send('PRIVMSG '+chan+' :'+target.upper()+' is on port '+tickerport+'.\r\n')
+      elif tickerport == "error":
+        irc.send('PRIVMSG '+chan+' :'+target.upper()+' is not found in my database.\r\n')
   if firstmsg == "!cinfo":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
     nick = user.replace(':', '')
     try:
       target = str(usrmsg.split(' ')[1]).strip()
+      try:
+        cInfo = str(usrmsg.split(' ')[2]).strip()
+      except:
+        cInfo = "error"
     except:
       irc.send('PRIVMSG '+chan+' :You need to provide an argument (coin), example "doge" (!cinfo doge)\r\n')
       target = "error"
@@ -411,11 +560,11 @@ while True:
     except:
       irc.send('PRIVMSG '+chan+' :Could not read API.\r\n')
       apierror = "true"
-    if apierror != "true" and target != "error" and exists == "true":
+    if apierror != "true" and target != "error" and exists == "true" and cInfo == "error":
       irc.send('PRIVMSG '+chan+' :Coin: '+name+' ['+nick+'] | Port: '+port+' | Algorithm: '+algo+' | Block rewards: '+reward+' | Block time: '+blocktime+' seconds | Diff: '+diff+' | Hashrate: '+hashrate+'.\r\n')
-    elif target != "error" and apierror != "true" and exists == "true":
+    elif target != "error" and apierror != "true" and exists == "true" and cInfo == "error":
       irc.send('PRIVMSG '+chan+' :You need to provide an argument (coin), example "doge" (!cinfo doge)\r\n')
-    elif target != "error" and exists == "false":
+    elif target != "error" and exists == "false" and cInfo == "error":
       irc.send('PRIVMSG '+chan+' :Coin '+str(target)+' not found!\r\n')
   if firstmsg == "#quiet":
     chan = data.split(' ')[2]
@@ -514,6 +663,57 @@ while True:
     try:
       if level >= 7 and target != "error":
         irc.send('PRIVMSG chanserv deop '+chan+' '+target+'\r\n')
+        level = 0
+      else:
+        irc.send('PRIVMSG '+chan+' :Failure. You are not level 7 or above.\r\n')
+    except:
+      print "Uh oh!"
+  if firstmsg == "#jail":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      f = open('./users/'+nick+'.txt', 'r')
+      level = int(f.read())
+      print (level)
+      f.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+    try:
+      target = usrmsg.split(' ')[1]
+    except:
+      irc.send('PRIVMSG '+chan+' :You need to provide an argument. (user)\r\n')
+      target = "error"
+    try:
+      if level >= 7 and target != "error":
+        irc.send('MODE '+chan+' +q '+target+'\r\n')
+        irc.send('PRIVMSG '+chan+' :You have been sent to jail! Why don\'t you come over to ##jail and we can talk this through?\r\n')
+        level = 0
+      else:
+        irc.send('PRIVMSG '+chan+' :Failure. You are not level 7 or above.\r\n')
+    except:
+      print "Uh oh!"
+  if firstmsg == "#unjail":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      f = open('./users/'+nick+'.txt', 'r')
+      level = int(f.read())
+      print (level)
+      f.close()
+    except:
+      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+    try:
+      target = usrmsg.split(' ')[1]
+    except:
+      irc.send('PRIVMSG '+chan+' :You need to provide an argument. (user)\r\n')
+      target = "error"
+    try:
+      if level >= 7 and target != "error":
+        irc.send('MODE '+chan+' -q '+target+'\r\n')
+        irc.send('PRIVMSG '+chan+' :Get out of my cell!\r\n')
+        irc.send('KICK ##jail '+target+' :Get out of my cell!\r\n')
         level = 0
       else:
         irc.send('PRIVMSG '+chan+' :Failure. You are not level 7 or above.\r\n')
