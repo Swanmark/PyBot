@@ -98,10 +98,22 @@ irc.send('JOIN '+ras+'\r\n')
 while True:
   data = irc.recv(8192)
   print (data)
+  if data.find('://') != -1:
+    try:
+      uhhwhat = data.split(':')[-2]
+      uhok = data.split(':')[3]
+      urlstring = uhhwhat+':'+uhok
+      url = urlstring.split(' ')[-1].strip()
+      uhhcmd = uhhwhat.split(' ')[-0].strip()
+      print uhhcmd
+      print url
+    except:
+      url = "error"
+      uhhcmd = "error"
+  else:
+    urlmsg = "error"
+    uhhcmd = "error"
   usrmsg = data.split(':')[-1].strip()
-#  shii = data.split('PRIVMSG')[-1].strip().replace(':', 'þ')
-#  shiimsg = shii.split('þ')[-1]
-#  print shiimsg
   firstmsg = usrmsg.split(' ')[0]
   if data.find('+o JustBerry') != -1:
     chan = data.split(' ')[2]
@@ -124,48 +136,72 @@ while True:
     if arg1 == "source":
       irc.send('PRIVMSG '+chan+' :Here you can find my bot\'s source: https://github.com/Swanmark/PyBot | This is my first script/program I\'ve written, ever. Please don\'t hate .. a lot.\r\n')
 #COINKING VOTE SHIT
-  if firstmsg.lower() == "!addcoin":
+  if firstmsg == "!addcoin" or uhhcmd == "!addcoin":
+    if uhhcmd == "!addcoin":
+      hasurl = "true"
+    elif uhhcmd != "!addcoin":
+      hasurl = "false"
     chan = data.split(' ')[2]
     user = data.split('!')[0]
     nick = user.replace(':', '')
-    try:
-      f = open('./users/'+nick+'.txt', 'r')
-      level = int(f.read())
-      print (level)
-      f.close()
-    except:
-      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
-    try:
-      name = str(usrmsg.split(' ')[1])
-      ticker = str(usrmsg.split(' ')[2])
-      algo = str(usrmsg.split(' ')[3])
-#      url = str(usrmsg.split(' ')[4])
-    except:
-      print "Did not find an argument with command @op"
+    if hasurl == "false":
       try:
-        if name != "finished":
-          name = name
+        name = str(usrmsg.split(' ')[1])
+        ticker = str(usrmsg.split(' ')[2])
+        algo = str(usrmsg.split(' ')[3])
+        url = "-"
+#        url = str(usrmsg.split(' ')[4])
       except:
-        name = "error"
+        print "Did not find an argument with command !addcoin"
+        try:
+          if name != "n/a":
+            name = name
+        except:
+          name = "n/a"
+        try:
+          if ticker != "n/a":
+            ticker = ticker
+        except:
+          ticker = "n/a"
+        try:
+          if algo != "n/a":
+            algo = algo
+        except:
+          algo = "n/a"
+        irc.send('PRIVMSG '+chan+' :Please use the correct format: !addcoin <name> <ticker> <algorithm> <optional thread url>\r\n')
+    elif hasurl == "true":
       try:
-        if ticker != "finished":
-          ticker = ticker
+        name = str(uhhwhat.split(' ')[1])
+        print name
+        ticker = str(uhhwhat.split(' ')[2])
+        print ticker
+        algo = str(uhhwhat.split(' ')[3])
+        print algo
+        url = url
+        print url
       except:
-        ticker = "error"
-      try:
-        if algo != "finished":
-          algo = algo
-      except:
-        algo = "error"
-#      url = "error"
-    try:
-      if level >= 7:
-        irc.send('PRIVMSG '+chan+' :Added '+name+'\r\n')
-        level = 0
-      else:
-        irc.send('PRIVMSG '+chan+' :Failure. You are not level 7 or above.\r\n')
-    except:
-      print "Failed to report coin info or check levels .. should have level tho."
+        print "Did not find an argument with command !addcoin"
+        try:
+          if name != "n/a":
+            name = name
+        except:
+          name = "n/a"
+        try:
+          if ticker != "n/a":
+            ticker = ticker
+        except:
+          ticker = "n/a"
+        try:
+          if algo != "n/a":
+            algo = algo
+        except:
+          algo = "n/a"
+        try:
+          if algo != "n/a":
+            url = url
+        except:
+          url = "n/a"
+        irc.send('PRIVMSG '+chan+' :Please use the correct format: !addcoin <name> <ticker> <algorithm> <optional thread url>\r\n')
     try:
       coinfile = open('./coins.txt', 'r')
       coinfileread = str(coinfile.read())
@@ -173,14 +209,15 @@ while True:
       print "probably managed to read file(DEBUG)"
       if coinfileread.find(name) != -1:
         irc.send('PRIVMSG '+chan+' :This coin has already been added.\r\n')
-      elif name != "error" and name != "finished":
+      elif name != "n/a":
         coinfile = open('./coins.txt', 'a')
-        coinfile.write(name+':'+ticker+':'+algo+':\n')
+        coinfile.write(name+':'+ticker+':'+algo+':'+url+':\n')
         coinfile.close()
-      name = "finished"
-      ticker = "finished"
-      algo = "finished"
-#     url = "finished"
+        irc.send('PRIVMSG '+chan+' :'+nick+' added coin '+name+'.\r\n')
+      name = "n/a"
+      ticker = "n/a"
+      algo = "n/a"
+      url = "n/a"
     except:
       print "Trying to open file for reading/writing, doesn't work."
 
@@ -197,8 +234,18 @@ while True:
         for line in coinfile:
           name = line.split(':')[-0].strip()
           ticker = line.split(':')[1].upper().strip()
-          algo = line.split(':')[-2].strip()
-          irc.send('PRIVMSG '+chan+' :'+name+' ['+ticker+'], algo: '+algo+'\r\n')
+          urlread1 = line.split(':')[-2].strip()
+          urlread2 = line.split(':')[-3].strip()
+          if urlread1 == "-":
+            url = "-"
+          elif urlread1 != "-":
+            url = urlread2+':'+urlread1
+          algo = line.split(':')[2].strip()
+          irc.send('PRIVMSG '+chan+' :'+name+' ['+ticker+'], algo: '+algo+' | '+url+'\r\n')
+          name = "error"
+          ticker = "error"
+          url = ""
+          algo = "error"
           time.sleep(0.2)
   if firstmsg.lower() == "!vote":
     chan = data.split(' ')[2]
@@ -208,20 +255,31 @@ while True:
       votedcoin = usrmsg.split(' ')[1].lower()
     except:
       votedcoin = "error"
-    if votedcoin != "error":
-      if os.path.exists('./votes/'+votedcoin+'.txt'):             #check if coin has been voted for previously (if file exists)
+    with open('./coins.txt', 'r') as coinfile:
+      for line in coinfile:
+        ticker = line.split(':')[1].strip()
+        with open('./tempfile.txt', 'a') as temp:
+          temp.write(ticker)
+    with open('./tempfile.txt', 'r') as temp:
+      validcoins = temp.read()
+      if validcoins.find(votedcoin) != -1:
+        vote = "valid"
+      else:
+        vote = "invalid"
+    if votedcoin != "error" and vote == "valid":
+      if os.path.exists('./votes/'+votedcoin+'.txt'): #check if coin has been voted for previously (if file exists)
         with open('./votes/'+votedcoin+'.txt', 'r+') as votefile: #open votefile
-          currentvotes = int(votefile.read())                     #read current votes
-          aftervote = currentvotes + 1                            #add one vote to current votes
-        if os.path.exists('./votes/users/'+nick+'.txt'):          #check if userfile exists
+          currentvotes = int(votefile.read()) #read current votes
+          aftervote = currentvotes + 1 #add one vote to current votes
+        if os.path.exists('./votes/users/'+nick+'.txt'): #check if userfile exists
           with open('./votes/users/'+nick+'.txt', 'r+') as userfile:#open userfile
-            currentcoins = userfile.read()                        #read current coin votes
-          if currentcoins.find(votedcoin) != -1:                  #check if coin user is trying to vote for has already been voted for by user
+            currentcoins = userfile.read() #read current coin votes
+          if currentcoins.find(votedcoin) != -1: #check if coin user is trying to vote for has already been voted for by user
             irc.send('PRIVMSG '+chan+' :You\'ve already voted for '+votedcoin+'.\r\n')
-            userok = "notok"                                      #testin stuf
+            userok = "notok" #testin stuf
           else:
             with open('./votes/users/'+nick+'.txt', 'a') as userfile: #trying to CREATE userfile, with w+ ??? :/
-              userfile.write(votedcoin+'\n')                           #write coin to userfile, so user can't vote for it again ...
+              userfile.write(votedcoin+'\n') #write coin to userfile, so user can't vote for it again ...
         else:
           with open('./votes/users/'+nick+'.txt', 'w+') as userfile:
             userfile.write(votedcoin+'\n')
@@ -233,13 +291,14 @@ while True:
           votefile.write("1")
         irc.send('PRIVMSG '+chan+' :'+nick.title()+' voted for '+votedcoin.title()+'\r\n')
 #i believe the following is an unnecissary duplicate of above code but it's late and I need to hit the bed, whatever.
-        if os.path.exists('./votes/users/'+nick+'.txt'):          #check if userfile exists
+        if os.path.exists('./votes/users/'+nick+'.txt'): #check if userfile exists
           with open('./votes/users/'+nick+'.txt', 'r+') as userfile:#open userfile
-            currentcoins = userfile.read()                        #read current coin votes
+            currentcoins = userfile.read() #read current coin votes
         else:
           with open('./votes/users/'+nick+'.txt', 'w+') as userfile:
             userfile.write(votedcoin)
-
+    else:
+      irc.send('PRIVMSG '+chan+' :Could not find coin '+votedcoin+'. Try adding the coin with !addcoin\r\n')
 #END OF COINKING VOTE SHIT
 #Start of game-thingy
   if firstmsg == "!create":
