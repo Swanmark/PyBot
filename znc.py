@@ -145,11 +145,12 @@ while True:
     user = data.split('!')[0]
     nick = user.replace(':', '')
     if hasurl == "false":
+      """
       try:
         name = str(usrmsg.split(' ')[1])
         ticker = str(usrmsg.split(' ')[2])
         algo = str(usrmsg.split(' ')[3])
-        url = "-"
+        url = url
 #        url = str(usrmsg.split(' ')[4])
       except:
         print "Did not find an argument with command !addcoin"
@@ -169,6 +170,8 @@ while True:
         except:
           algo = "n/a"
         irc.send('PRIVMSG '+chan+' :Please use the correct format: !addcoin <name> <ticker> <algorithm> <optional thread url>\r\n')
+       """
+      irc.send('PRIVMSG '+chan+' :Error: You probably did not provide a thread URL.\r\n')
     elif hasurl == "true":
       try:
         name = str(uhhwhat.split(' ')[1])
@@ -255,6 +258,7 @@ while True:
       votedcoin = usrmsg.split(' ')[1].lower()
     except:
       votedcoin = "error"
+      irc.send('PRIVMSG '+chan+' :Usage: !vote <cointicker> (examples: !vote doge, !vote rzr, !vote btc)\r\n')
     with open('./coins.txt', 'r') as coinfile:
       for line in coinfile:
         ticker = line.split(':')[1].strip()
@@ -297,7 +301,7 @@ while True:
         else:
           with open('./votes/users/'+nick+'.txt', 'w+') as userfile:
             userfile.write(votedcoin)
-    else:
+    elif vote == "invalid":
       irc.send('PRIVMSG '+chan+' :Could not find coin '+votedcoin+'. Try adding the coin with !addcoin\r\n')
 #END OF COINKING VOTE SHIT
 #Start of game-thingy
