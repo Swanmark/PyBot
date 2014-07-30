@@ -9,6 +9,7 @@ import ssl
 import math
 import json
 from random import randrange
+import hashlib
 #coinking readings
 """  Commenting this out temporarily, don't want to delete it just jet
 a = open('/home/swanmark/python/coinking/data/scrypt.txt', 'r')
@@ -115,9 +116,6 @@ while True:
     uhhcmd = "error"
   usrmsg = data.split(':')[-1].strip()
   firstmsg = usrmsg.split(' ')[0]
-  if data.find('+o JustBerry') != -1:
-    chan = data.split(' ')[2]
-    irc.send('PIRVMSG chanserv deop '+chan+' JustBerry\r\n')
   if firstmsg.find('!colors') != -1 or firstmsg.find('!colours') != -1:
     chan = data.split(' ')[2]
     irc.send('PRIVMSG '+chan+' :\0031_______________________________________________________________________\r\n')
@@ -135,6 +133,61 @@ while True:
       arg1 = "ERROR"
     if arg1 == "source":
       irc.send('PRIVMSG '+chan+' :Here you can find my bot\'s source: https://github.com/Swanmark/PyBot | This is my first script/program I\'ve written, ever. Please don\'t hate .. a lot.\r\n')
+  if firstmsg == "!encode":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      arg1 = str(usrmsg.split(' ')[1]).strip()
+    except:
+      arg1 = "error"
+    try:
+      arg2 = str(usrmsg.split(' ')[2]).strip().lower()
+    except:
+      arg2 = "md5"
+    if arg2 != "error" and arg2 != "sha256" and arg2 != "sha1" and arg2 != "sha224" and arg2 != "sha384" and arg2 != "sha512" and arg2 != "md5":
+      arg2 = "md5"
+    if arg1 != "error":
+      irc.send('PRIVMSG '+chan+' :'+arg2+': '+getattr(hashlib, arg2)(arg1).hexdigest()+'\r\n')
+    elif arg1 == "error":
+      irc.send('PRIVMSG '+chan+' :Usage: !encode [algorithm] <string>, algo can be one of the following: md5, sha1, sha224, sha256, sha384 and sha512. If no algo is provided, md5 is used.\r\n')
+  if data.find("MODE #coinking +o miaviator") != -1:
+    irc.send('KICK #coinking miaviator :rekt\r\n')
+  """ #Looks like I am banned on cryptocoincharts... -.-
+      #Remember to finish this command properly at some point
+  if firstmsg == "!cprice":
+    chan = data.split(' ')[2]
+    try:
+      arg1 = str(usrmsg.split(' ')[1]).strip()
+      print arg1
+    except:
+      irc.send('PRIVMSG '+chan+' :You need to provide an argument (coin), example "doge" (!price doge), command also takes a second argument, amount. (!price doge 1000)\r\n')
+      arg1 = "error"
+    try:
+      if usrmsg.split(' ')[2].find(','):
+        amntmsg = usrmsg.split(' ')[2].replace(',', '.')
+      else:
+        amntmsg = usrmsg.split(' ')[2]
+      amount = float(amntmsg.strip())
+    except:
+      amount = 1
+    if arg1 != "error":
+      try:
+        apidata = urllib2.urlopen('http://www.cryptocoincharts.info/v2/api/tradingPair/'+arg1+'_btc').read()
+      except:
+        apidata = "error"
+        print apidata
+      if apidata != "error":
+        jsonload = json.loads(apidata)
+        jprice = str(jsonload['price'])
+        try:
+          price = str(float(jprice) * amount)
+        except:
+          price = "error"
+        coins_id = str(jsonload['id'])
+        if price != "error":
+          irc.send('PRIVMSG '+chan+' :'+str(amount)+' '+arg1+' = $'+price+'\r\n')
+   """
 #COINKING VOTE SHIT
   if firstmsg == "!addcoin" or uhhcmd == "!addcoin":
     if uhhcmd == "!addcoin":
@@ -176,7 +229,7 @@ while True:
       try:
         name = str(uhhwhat.split(' ')[1])
         print name
-        ticker = str(uhhwhat.split(' ')[2])
+        ticker = str(uhhwhat.split(' ')[2]).lower()
         print ticker
         algo = str(uhhwhat.split(' ')[3])
         print algo
@@ -821,7 +874,44 @@ while True:
       irc.send('PRIVMSG '+chan+' :'+userarg+' is now level '+str(level)+'.\r\n')
     except:
       irc.send('PRIVMSG '+chan+' :Something went wrong.\r\n')
-
+  """
+  if data.find('+o teknogeek') != -1:
+    irc.send('PRIVMSG chanserv deop '+chan+' teknogeek\r\n')
+  """
+  if firstmsg == "!storyadd":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      userarg1 = usrmsg.split(' ')[1]
+    except:
+      userarg1 = "error"
+      irc.send('PRIVMSG '+chan+' :Didn\'t find an argument. Try !storyadd <word>\r\n')
+    if userarg1 != "error":
+      try:
+        f = open('story.txt', 'a')
+        f.write(userarg1+' ')
+        f.close()
+        irc.send('PRIVMSG '+chan+' :Word "'+userarg1+'" added to the story. !readstory to see the story.\r\n')
+      except:
+        irc.send('PRIVMSG '+chan+' :Couldn\'t write to file.\r\n')
+  if firstmsg == "!readstory":
+    chan = data.split(' ')[2]
+    user = data.split('!')[0]
+    nick = user.replace(':', '')
+    try:
+      f = open('story.txt', 'r')
+      story = str(f.read())
+      f.close()
+    except:
+      story = "error"
+    if story != "error":
+      irc.send('PRIVMSG '+chan+' :'+story+'\r\n')
+      irc.send('PRIVMSG '+chan+' :--- To add to the story, type !storyadd\r\n')
+    elif story == "error":
+      irc.send('PRIVMSG '+chan+' :Didn\'t find story. File probably doesn\'t exist.\r\n')
+    else:
+      irc.send('PRIVMSG '+chan+' :Error, have no idea what error. but .. error.\r\n')
   if firstmsg.find('!level5only') != -1:
     chan = data.split(' ')[2]
     user = data.split('!')[0]
@@ -961,7 +1051,7 @@ while True:
     irc.send('PRIVMSG '+chan+' :\0038###############\r\n')
     irc.send('PRIVMSG '+chan+' :\0038###############\r\n')
     irc.send('PRIVMSG '+chan+' :\0034###############\r\n')
-  if firstmsg.find('!swe') != -1:
+  if firstmsg == "!swe":
     chan = data.split(' ')[2]
     irc.send('PRIVMSG '+chan+' :\00312###\0038##\00312#####\r\n')
     irc.send('PRIVMSG '+chan+' :\0038##########\r\n')
