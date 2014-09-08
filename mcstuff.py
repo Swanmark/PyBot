@@ -16,8 +16,9 @@ ras = "#irc"
 s0cket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 irc = ssl.wrap_socket(s0cket)
 irc.connect((server, 31337))
-
-irc.write('PASS swanmark:asdf123\r\nNICK '+nick+'\r\nUSER 1 2 3 :4\r\n')
+with open('./zncpwd.txt', 'r') as zncfile:
+  zncpwd = zncfile.read()
+irc.write('PASS swanmark:'+zncpwd+'\r\nNICK '+nick+'\r\nUSER 1 2 3 :4\r\n')
 
 time.sleep(1)
 irc.recv(8192)
