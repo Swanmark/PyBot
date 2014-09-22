@@ -10,6 +10,7 @@ import math
 import json
 from random import randrange
 import hashlib
+from time import strftime
 #coinking readings
 """  Commenting this out temporarily, don't want to delete it just jet
 a = open('/home/swanmark/python/coinking/data/scrypt.txt', 'r')
@@ -80,10 +81,110 @@ except:
 #day = now.split(' ')[2]
 #zone = now.split(' ')[4]
 #year = now.split(' ')[5]
+
+#define functions
+def getUser(datastr):
+  user = datastr.split('!')[0]
+  return user.replace(':', '')
+def getChan(datastr):
+  try:
+    return datastr.split(' ')[2]
+  except:
+    return "error"
+def getMsg(datastr):
+  return datastr.split(':')[-1].strip()
+#Functions for tempban command
+#-*- coding:utf8 -*-
+import time
+
+class bann:
+  def __init__(self, name, expires, channel):
+    self.name = name
+    self.expires = expires
+    self.channel = channel
+
+class userBans:
+  bannedArray = []
+
+  """if a user was removed from pan the function returns True otherwise false"""
+  def removeBans(self, irc):
+    Ret = False
+    now=int(time.time())
+    for b in reversed(self.bannedArray):
+      if b.expires < now:
+#          irc.send('MODE '+chan+' -q '+b.name+'\r\n')
+          strsend = 'MODE '+b.channel+' -q '+b.name+'\r\n'
+          irc.send('PRIVMSG '+b.channel+' :Ég er að fara að keyra: "'+strsend+'"\r\n')
+          irc.send(strsend)
+          self.bannedArray.remove(b)
+          print "Unbanned user "+b.name
+          Ret = True
+    return Ret
+
+  def banUser(self, irc, chan, userName, banSeconds):
+    if self.isUserBanned(userName, chan) == True:
+  	  print "User is already banned, unable to ban again!"
+  	  return
+    now=int(time.time())
+    self.bannedArray.append( bann(userName, now + banSeconds, chan))
+    irc.send('MODE '+chan+' +q '+userName+'\r\n')
+
+  def printBanned(self, irc, chan):
+    for item in self.bannedArray:
+      irc.send('PRIVMSG '+chan+' :('+str(len(self.bannedArray))+') At '+time.ctime(item.expires)+' expires ban for (Raw time:'+str(item.expires)+')'+item.name+'\r\n')
+
+  def findUser(self, userName, channel):
+    i = 0
+    for item in self.bannedArray:
+      if item.name == userName:
+        if item.channel == channel:
+          return i
+      i = i + 1
+    return -1
+
+  def isUserBanned(self, userName, channel):
+    if self.findUser(userName, channel) == -1:
+      return False
+    return True
+
+  def unban(self, irc, userName, channel):
+    i = self.findUser(userName, channel)
+    if i == -1:
+      return
+    else:
+      self.bannedArray.pop(i)
+      irc.send('MODE '+channel+' -q '+userName+'\r\n')
+
+  def loadBannedUsers(self):
+    try:
+      f = open('./bans.txt', 'r')
+      for line in f:
+        line.strip()
+        name = line.split(', ')[0]
+        expires = line.split(', ')[1]
+        channel = line.split(', ')[2]
+        self.bannedArray.append( bann( name, int(expires), channel))
+      f.close()
+    except:
+      self.bannedArray = []
+      print "Cleared self.bannedArray, unable to open file for reading."
+
+  def saveBannedUsers(self):
+	  f = open('./bans.txt', 'w+')
+	  for item in self.bannedArray:
+		  f.write(item.name)
+		  f.write(", ")
+		  f.write(str(item.expires))
+		  f.write(", ")
+                  f.write(str(item.channel))
+                  f.write(", ")
+		  f.write(str(time.ctime(item.expires)))
+		  f.write("\n")
+	  f.close()
 nick = "bot1337"
-server = "swanmark.gulur.net"
+server = "rekt.club"
 ras = "#coinking"
-zncfile = open('/home/swanmark/bot/zncLogin.txt', 'r')
+zncfile = open('zncLogin.txt', 'r')
 zncpwd = zncfile.read()
 zncfile.close()
 s0cket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -96,6 +197,14 @@ time.sleep(1)
 irc.recv(8192)
 time.sleep(1)
 irc.send('JOIN '+ras+'\r\n')
+banlist = userBans()
+banlist.loadBannedUsers()
+banlist.printBanned(irc, "##markchan")
+banlist.removeBans(irc)
+banlist.printBanned(irc, "##markchan")
+initStuff = True
+#Enabled/disabled stuff
+seenenabled = "false"
 while True:
   data = irc.recv(8192)
   print (data)
@@ -116,10 +225,119 @@ while True:
     uhhcmd = "error"
   usrmsg = data.split(':')[-1].strip()
   firstmsg = usrmsg.split(' ')[0]
+  if firstmsg == "!cprice":
+    chan = getChan(data)
+    with open('./apikey.txt') as apifile:
+      apikey = apifile.read().strip()
+    try:
+      try:
+        int(usrmsg.split(' ')[1])
+        isargint = "true"
+        try:
+          arg2 = usrmsg.split(' ')[2]
+        except:
+          arg2 = "error"
+      except ValueError:
+        isargint = "false"
+      arg1 = usrmsg.split(' ')[1]
+    except:
+      arg1 = "error"
+    if arg1 != "error" and isargint == "false":
+      btcpricestr = urllib2.urlopen("https://btc-e.com/api/2/btc_usd/ticker").read()
+      apipricejson = urllib2.urlopen("https://coinking.io/api.php?key="+apikey+"&type=getprice&coin="+arg1+"&output=json").read()
+      jsonstr = json.loads(apipricejson)
+      btcjson = json.loads(btcpricestr)
+      btcprice = btcjson['ticker']['last']
+      gotprice = str(jsonstr['price'])
+      gotticker = jsonstr['coin']
+      price = float(gotprice)
+      pricedollars = float(gotprice)*float(btcprice)
+      irc.send('PRIVMSG '+chan+' :1 '+gotticker.upper()+' = '+str("%.8f" % price)+'BTC | $'+str(pricedollars)+'\r\n')
+      arg1 = "error"
+    if arg1 != "error" and arg2 != "error" and isargint == "true":
+      btcpricestr = urllib2.urlopen("https://btc-e.com/api/2/btc_usd/ticker").read()
+      apipricejson = urllib2.urlopen("https://coinking.io/api.php?key="+apikey+"&type=getprice&coin="+arg2+"&output=json").read()
+      btcjson = json.loads(btcpricestr)
+      jsonstr = json.loads(apipricejson)
+      btcprice = btcjson['ticker']['last']
+      gotprice = str(jsonstr['price'])
+      gotticker = jsonstr['coin']
+      price = float(gotprice)*float(arg1)
+      pricedollars = float(price)*float(btcprice)
+      irc.send('PRIVMSG '+chan+' :'+arg1+' '+gotticker.upper()+' = '+str("%.8f" % float(price))+'BTC | $'+str(pricedollars)+'\r\n')
+      arg1 = "error"
+      arg2 = "error"
+  """
+  if initStuff == True:
+    initStuff=False
+    irc.send('PRIVMSG ##markchan :InitStuff\r\n')
+
+  if firstmsg == "!prufa":
+    chan = getChan(data)
+    irc.send('PRIVMSG '+chan+' :'+getUser(data)+' sagdi "'+getMsg(data)+'" á '+chan+'.\r\n')
+  #removes banned users from ban list
+  if banlist.removeBans(irc) == True:
+    banlist.saveBannedUsers()
+    banlist.printBanned(irc, "##markchan")
+  if firstmsg == "!listbans":
+    chan = getChan(data)
+    banlist.printBanned(irc, chan)
+    irc.send('PRIVMSG '+chan+' :Fekk skipun, ætti að vera búinn að lista bans.\r\n')  
+  if firstmsg == "!quiet":
+    chan = getChan(data)
+    nick = getUser(data)
+    try:
+      arg1 = str(usrmsg.split(' ')[1])
+      arg2 = int(usrmsg.split(' ')[2])
+    except:
+      arg1 = "error"
+      arg2 = "error"
+    if arg1 != "error":
+      banlist.banUser(irc, chan, arg1, arg2)
+      banlist.saveBannedUsers()
+    elif arg1 == "error":
+      irc.send('PRIVMSG '+chan+' :You need to provide two arguments! (!quiet <nick> <time>)\r\n')
+  """
+  if firstmsg == "!enable":
+    chan = getChan(data)
+    try:
+      arg1 = usrmsg.split()[1].lower()
+    except:
+      arg1 = "error"
+    if arg1 != "error":
+      if arg1 == "seen":
+        seenenabled = "true"
+        irc.send('PRIVMSG '+chan+' :'+arg1+' enabled succesfully.\r\n')
+      else:
+        irc.send('PRIVMSG '+chan+' :Couldn\'t find anything to enable for: '+arg1+'\r\n')
+    else:
+      irc.send('PRIVMSG '+chan+' :Argument plz.\r\n')
+  if firstmsg == "!disable":
+    chan = getChan(data)
+    try:
+      arg1 = usrmsg.split()[1].lower()
+    except:
+      arg1 = "error"
+    if arg1 != "error":
+      if arg1 == "seen":                                               
+        seenenabled = "false"                                           
+        irc.send('PRIVMSG '+chan+' :'+arg1+' disabled succesfully.\r\n')
+      else:
+        irc.send('PRIVMSG '+chan+' :Couldn\'t find anything to enable for: '+arg1+'\r\n')
+    else:
+      irc.send('PRIVMSG '+chan+' :Argument plz.\r\n')
+  if data.lower().find('privmsg ##ocelotworks') != -1:
+    seentime = strftime("%H:%M")
+    user = getUser(data)
+    if user.lower() != "swanmark" and seenenabled == "true":
+      irc.send('PRIVMSG ##ocelotworks :'+user+': ✓ Seen '+seentime+'\r\n')
   if firstmsg.find('!colors') != -1 or firstmsg.find('!colours') != -1:
     chan = data.split(' ')[2]
     irc.send('PRIVMSG '+chan+' :\0031_______________________________________________________________________\r\n')
     irc.send('PRIVMSG '+chan+' :\0031|\0030 0\0031 | 1 |\0032 2\0031 |\0033 3\0031 |\0034 4\0031 |\0035 5\0031 |\0036 6\0031 |\0037 7\0031 |\0038 8\0031 |\0039 9\0031 |\00310 10\0031 |\00311 11\0031 |\00312 12\0031 |\00313 13\0031 |\00314 14\0031 |\00315 15\0031 |\r\n')
+  if firstmsg == "!blox":
+    chan = getChan(data)
+    irc.send('PRIVMSG '+chan+' :\0034███████████████████\r\nPRIVMSG '+chan+' :\0035███████████████████\r\nPRIVMSG '+chan+' :\0036███████████████████\r\nPRIVMSG '+chan+' :\0037███████████████████\r\nPRIVMSG '+chan+' :\0038███████████████████\r\nPRIVMSG '+chan+' :\0039███████████████████\r\n')
   if firstmsg == "!pun":
     chan = data.split(' ')[2]
     puns = open('puns.txt').read().splitlines()
@@ -133,7 +351,7 @@ while True:
       arg1 = "ERROR"
     if arg1 == "source":
       irc.send('PRIVMSG '+chan+' :Here you can find my bot\'s source: https://github.com/Swanmark/PyBot | This is my first script/program I\'ve written, ever. Please don\'t hate .. a lot.\r\n')
-  if firstmsg == "!encode":
+  if firstmsg == "!encrypt":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
     nick = user.replace(':', '')
@@ -145,12 +363,40 @@ while True:
       arg2 = str(usrmsg.split(' ')[2]).strip().lower()
     except:
       arg2 = "md5"
-    if arg2 != "error" and arg2 != "sha256" and arg2 != "sha1" and arg2 != "sha224" and arg2 != "sha384" and arg2 != "sha512" and arg2 != "md5":
+    if arg2 != "error" and arg2 != "sha256" and arg2 != "sha1" and arg2 != "sha224" and arg2 != "sha384" and arg2 != "sha512" and arg2 != "md5" and arg2 != "swan":
       arg2 = "md5"
-    if arg1 != "error":
+    if arg1 != "error" and arg2 != "swan":
       irc.send('PRIVMSG '+chan+' :'+arg2+': '+getattr(hashlib, arg2)(arg1).hexdigest()+'\r\n')
+    elif arg1 != "error" and arg2 == "swan":
+      swansalt = str(hashlib.sha512("swanmark").hexdigest())
+      swanstring = str(swansalt+arg1)
+      print swanstring
+      irc.send('PRIVMSG '+chan+' :'+arg2+': '+hashlib.md5(swanstring).hexdigest()+'\r\n')
     elif arg1 == "error":
-      irc.send('PRIVMSG '+chan+' :Usage: !encode [algorithm] <string>, algo can be one of the following: md5, sha1, sha224, sha256, sha384 and sha512. If no algo is provided, md5 is used.\r\n')
+      irc.send('PRIVMSG '+chan+' :Usage: !encrypt <string> [algorithm], algo can be one of the following: md5, sha1, sha224, sha256, sha384 and sha512. If no algo is provided, md5 is used.\r\n')
+  if firstmsg == "!spamchan":
+    chan = getChan(data)
+    def rancol():
+      randomcolor = str("\003"+str(random.randrange(1, 12)))
+      return randomcolor
+    irc.send('PRIVMSG '+chan+' :'+rancol()+str(hashlib.sha512(str(random.randrange(1, 100000))).hexdigest())+'\r\n')
+    irc.send('PRIVMSG '+chan+' :'+rancol()+str(hashlib.sha512(str(random.randrange(1, 100000))).hexdigest())+'\r\n')
+    irc.send('PRIVMSG '+chan+' :'+rancol()+str(hashlib.sha512(str(random.randrange(1, 100000))).hexdigest())+'\r\n')
+    irc.send('PRIVMSG '+chan+' :'+rancol()+str(hashlib.sha512(str(random.randrange(1, 100000))).hexdigest())+'\r\n')
+    irc.send('PRIVMSG '+chan+' :'+rancol()+str(hashlib.sha512(str(random.randrange(1, 100000))).hexdigest())+'\r\n')
+    irc.send('PRIVMSG '+chan+' :'+rancol()+str(hashlib.sha512(str(random.randrange(1, 100000))).hexdigest())+'\r\n')
+    time.sleep(5)
+  if firstmsg == "!fancy":
+    chan = getChan(data)
+    def rancol():
+      randomcolor = str("\003"+str(random.randrange(1, 12)))
+      return randomcolor
+    irc.send('PRIVMSG '+chan+' :'+rancol()+'☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒\r\n')
+    time.sleep(0.5)
+    irc.send('PRIVMSG '+chan+' :'+rancol()+'☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒\r\n')
+    time.sleep(0.5)
+    irc.send('PRIVMSG '+chan+' :'+rancol()+'☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒☒\r\n')
+    time.sleep(3)
   if data.find("MODE #coinking +o miaviator") != -1:
     irc.send('KICK #coinking miaviator :rekt\r\n')
   """ #Looks like I am banned on cryptocoincharts... -.-
@@ -224,7 +470,8 @@ while True:
           algo = "n/a"
         irc.send('PRIVMSG '+chan+' :Please use the correct format: !addcoin <name> <ticker> <algorithm> <optional thread url>\r\n')
        """
-      irc.send('PRIVMSG '+chan+' :Error: You probably did not provide a thread URL.\r\n')
+      #irc.send('PRIVMSG '+chan+' :Error: You probably did not provide a thread URL.\r\n')
+      irc.send('PRIVMSG '+chan+' :Please use the correct format: !addcoin <name> <ticker> <algorithm> <optional thread url>\r\n')
     elif hasurl == "true":
       try:
         name = str(uhhwhat.split(' ')[1])
@@ -656,9 +903,15 @@ while True:
       diff = jload['difficulty']
       name = jload['name']
       nick = jload['nickname']
-      khash = jl0ad['khash']
-      mhash = jl0ad['mhash']
-      ghash = jl0ad['ghash']
+      khashjson = jl0ad['khash']
+      mhashjson = jl0ad['mhash']
+      ghashjson = jl0ad['ghash']
+      khash = "%.2f" % khashjson
+      mhash = "%.2f" % mhashjson
+      ghash = "%.2f" % ghashjson
+      nethashjson = jload['networkhashrate']
+      nethash = "%.2f" % nethashjson
+      percentage = "{0:.2f}%".format(float(ghash)/float(nethash)*100)
       apierror = "false"
       if name is None:
         exists = "false"
@@ -676,8 +929,9 @@ while True:
     except:
       irc.send('PRIVMSG '+chan+' :Could not read API.\r\n')
       apierror = "true"
+      exists = "false"
     if apierror != "true" and target != "error" and exists == "true" and cInfo == "error":
-      irc.send('PRIVMSG '+chan+' :Coin: '+name+' ['+nick+'] | Port: '+port+' | Algorithm: '+algo+' | Block rewards: '+reward+' | Block time: '+blocktime+' seconds | Diff: '+diff+' | Hashrate: '+hashrate+'.\r\n')
+      irc.send('PRIVMSG '+chan+' :Coin: '+name+' ['+nick+'] | Port: '+port+' | Algorithm: '+algo+' | Block rewards: '+reward+' | Block time: '+blocktime+' seconds | Diff: '+diff+' | Coinking Hashrate: '+hashrate+' ('+str(percentage)+') | Network Hashrate: '+str(nethash)+' GH/s.\r\n')
     elif target != "error" and apierror != "true" and exists == "true" and cInfo == "error":
       irc.send('PRIVMSG '+chan+' :You need to provide an argument (coin), example "doge" (!cinfo doge)\r\n')
     elif target != "error" and exists == "false" and cInfo == "error":
@@ -719,7 +973,7 @@ while True:
       print (level)
       f.close()
     except:
-      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+      print "userinfo no find"
     try:
       target = usrmsg.split(' ')[1]
     except:
@@ -746,7 +1000,8 @@ while True:
       print (level)
       f.close()
     except:
-      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+      print "userinfo no find"
+      level = 0
     try:
       target = usrmsg.split(' ')[1]
     except:
@@ -770,7 +1025,8 @@ while True:
       print (level)
       f.close()
     except:
-      irc.send('PRIVMSG '+chan+' :Error: Could not open user info.\r\n')
+      print "userinfo no find"
+      level = 0
     try:
       target = usrmsg.split(' ')[1]
     except:
@@ -835,14 +1091,15 @@ while True:
         irc.send('PRIVMSG '+chan+' :Failure. You are not level 7 or above.\r\n')
     except:
       print "Uh oh!"
+  """ Disabling this crap because of some odd shit i can't be bothered with
   if firstmsg.find('!date') != -1:
-    f = os.popen("date")
-    now = ''.join(f)
-    klukkan = now.split(' ')[3]
-    month = now.split(' ')[1]
-    day = now.split(' ')[2]
-    zone = now.split(' ')[4]
-    year = now.split(' ')[5]
+    f = os.popen("date").read()
+    datenow = str(f)
+    klukkan = datenow.split(' ')[3]
+    month = datenow.split(' ')[1]
+    day = datenow.split(' ')[2]
+    zone = datenow.split(' ')[4]
+    year = datenow.split(' ')[5]
     chan = data.split(' ')[2]
     if day == 1:
       irc.send('PRIVMSG '+chan+' :It is the '+day+'st of '+month+', 2014. Time: '+klukkan+' GMT.\r\n')
@@ -858,6 +1115,8 @@ while True:
       irc.send('PRIVMSG '+chan+' :It is the '+day+'rd of '+month+', 2014. Time: '+klukkan+' GMT.\r\n')
     else:
       irc.send('PRIVMSG '+chan+' :It is the '+day+'th of '+month+', 2014. Time: '+klukkan+' GMT.\r\n')
+      irc.send('PRIVMSG '+chan+' :DEBUG >>> '+str(f)+'\r\n')
+  """
   if firstmsg.find('!mod') != -1 and str(data.split('!')[0].replace(':', '')) == "Swanmark":
     user = data.split('!')[0]
     nick = user.replace(':', '')
@@ -883,18 +1142,20 @@ while True:
     user = data.split('!')[0]
     nick = user.replace(':', '')
     try:
-      userarg1 = usrmsg.split(' ')[1]
+      userarg1 = usrmsg.split(' ', 1)[1]
     except:
       userarg1 = "error"
-      irc.send('PRIVMSG '+chan+' :Didn\'t find an argument. Try !storyadd <word>\r\n')
-    if userarg1 != "error":
+      irc.send('PRIVMSG '+chan+' :Didn\'t find an argument. Try !storyadd <word(s)>\r\n')
+    if userarg1 != "error" and nick != "miaviator":
       try:
         f = open('story.txt', 'a')
         f.write(userarg1+' ')
         f.close()
-        irc.send('PRIVMSG '+chan+' :Word "'+userarg1+'" added to the story. !readstory to see the story.\r\n')
+        irc.send('PRIVMSG '+chan+' :"'+userarg1+'" added to the story. !readstory to see the story.\r\n')
       except:
         irc.send('PRIVMSG '+chan+' :Couldn\'t write to file.\r\n')
+    elif userarg1 != "error" and nick == "miaviator":
+      irc.send('PRIVMSG '+chan+' :Miaviator cannot use command: !storyadd\r\n')
   if firstmsg == "!readstory":
     chan = data.split(' ')[2]
     user = data.split('!')[0]
@@ -907,7 +1168,7 @@ while True:
       story = "error"
     if story != "error":
       irc.send('PRIVMSG '+chan+' :'+story+'\r\n')
-      irc.send('PRIVMSG '+chan+' :--- To add to the story, type !storyadd\r\n')
+      irc.send('PRIVMSG '+chan+' :--- To add to the story, type !storyadd --- Purged stories can be accessed here: http://interestingmen.net/stories\r\n')
     elif story == "error":
       irc.send('PRIVMSG '+chan+' :Didn\'t find story. File probably doesn\'t exist.\r\n')
     else:
